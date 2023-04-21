@@ -30,3 +30,19 @@ classifiers = [
 
 [tool.setuptools.dynamic]
 dependencies = {file = ["requirements.txt"]}
+
+[tool.pyright]
+include = [
+    "wavelink",
+    "wavelink/ext/spotify",
+]
+exclude = [
+    "**/__pycache__",
+    "build",
+    "dist",
+    "docs",
+]
+reportMissingImports = "none"
+reportUnnecessaryTypeIgnoreComment = "warning"
+pythonVersion = "3.10"
+typeCheckingMode = "basic"

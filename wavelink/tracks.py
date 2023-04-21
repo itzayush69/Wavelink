@@ -153,6 +153,17 @@ class Playable(metaclass=abc.ABCMeta):
                      node: Node | None = ...
                      ) -> Self:
         ...
+    
+    @overload
+    @classmethod
+    async def search(cls,
+                     query: str,
+                     /,
+                     *,
+                     return_first: bool = ...,
+                     node: Node | None = ...
+                     ) -> Playlist:
+        ...
 
     @overload
     @classmethod
@@ -183,7 +194,7 @@ class Playable(metaclass=abc.ABCMeta):
                      *,
                      return_first: bool = False,
                      node: Node | None = None
-                     ) -> Self | list[Self]:
+                     ) -> Self | list[Self] | Playlist | None:
         """Search and retrieve tracks for the given query.
 
         Parameters

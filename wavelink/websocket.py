@@ -91,7 +91,8 @@ class Websocket:
         self.node._status = NodeStatus.CONNECTING
 
         try:
-            self._listener_task.cancel()
+            if self._listener_task:
+                self._listener_task.cancel()
         except Exception as e:
             logger.debug(f'An error was raised while cancelling the websocket listener. {e}')
 
@@ -142,6 +143,8 @@ class Websocket:
         await self.connect()
 
     async def _listen(self) -> None:
+        assert self.socket is not None
+        
         while True:
             message = await self.socket.receive()
 
@@ -179,7 +182,7 @@ class Websocket:
                 self.dispatch('node_ready', self.node)
 
             elif op == 'stats':
-                payload = ...
+                payload = ... # type: ignore
                 logger.debug(f'Stats Update: {data}')
                 self.dispatch('stats_update', data)
 
@@ -234,17 +237,20 @@ class Websocket:
         return self.node.players.get(int(payload['guildId']), None)
 
     def dispatch(self, event, *args: Any, **kwargs: Any) -> None:
+        assert self.node.client is not None
         self.node.client.dispatch(f"wavelink_{event}", *args, **kwargs)
 
     # noinspection PyBroadException
     async def cleanup(self) -> None:
         try:
-            await self.socket.close()
+            if self.socket:
+                await self.socket.close()
         except AttributeError:
             pass
 
         try:
-            self._listener_task.cancel()
+            if self._listener_task:
+                self._listener_task.cancel()
         except Exception:
             pass
 

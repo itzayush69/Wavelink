@@ -28,7 +28,7 @@ import base64
 import enum
 import re
 import time
-from typing import Any, List, Optional, Type, TypeVar, Union, TYPE_CHECKING
+from typing import Any, List, Optional, Type, TypeVar, Union, TYPE_CHECKING, overload, Literal
 
 import aiohttp
 from discord.ext import commands
@@ -38,6 +38,7 @@ from wavelink import Node, NodePool
 
 if TYPE_CHECKING:
     from wavelink import Player, Playable
+    from typing_extensions import Self
 
 
 __all__ = ('SpotifySearchType',
@@ -118,11 +119,11 @@ class SpotifySearchType(enum.Enum):
 
 class SpotifyAsyncIterator:
 
-    def __init__(self, *, query: str, limit: int, type: SpotifySearchType, node: Node):
-        self._query = query
-        self._limit = limit
-        self._type = type
-        self._node = node
+    def __init__(self, *, query: str, limit: int | None, type: SpotifySearchType, node: Node):
+        self._query: str = query
+        self._limit: int | None = limit
+        self._type: SpotifySearchType = type
+        self._node: Node = node
 
         self._first = True
         self._count = 0
@@ -132,6 +133,8 @@ class SpotifyAsyncIterator:
         return self
 
     async def fill_queue(self):
+        assert self._node._spotify is not None, RuntimeError("Spotify not connected to attached node.")
+
         tracks = await self._node._spotify._search(query=self._query, iterator=True, type=self._type)
 
         for track in tracks:
@@ -175,7 +178,7 @@ class SpotifyRequestError(Exception):
         self.reason = reason
 
 
-class SpotifyTrack:
+class SpotifyTrack(Playable):
     """A track retrieved via Spotify.
 
     Attributes
@@ -241,18 +244,18 @@ class SpotifyTrack:
 
         self.isrc: str | None = data["external_ids"].get("isrc")
 
-    def __eq__(self, other) -> bool:
-        return self.id == other.id
+    def __eq__(self, other: Any) -> bool:
+        return hasattr(other, "id") and self.id == other.id
 
     @classmethod
     async def search(
-        cls: Type[ST],
-            query: str,
-            *,
-            type: SpotifySearchType = SpotifySearchType.track,
-            node: Node | None = None,
-            return_first: bool = False,
-    ) -> Union[Optional[ST], List[ST]]:
+        cls: Type[Self],
+        query: str,
+        *,
+        type: SpotifySearchType = SpotifySearchType.track,
+        node: Node | None = None,
+        return_first: bool = False,
+    ) -> Self | List[Self]:
         """|coro|
 
         Search for tracks with the given query.
@@ -272,14 +275,15 @@ class SpotifyTrack:
         -------
         Union[Optional[Track], List[Track]]
         """
-        if node is None:
-            node: Node = NodePool.get_connected_node()
+        _node = node or NodePool.get_connected_node()
+
+        assert _node._spotify is not None, RuntimeError("Node does not have an attached spotify client")
 
         if type == SpotifySearchType.track:
-            tracks = await node._spotify._search(query=query, type=type)
+            tracks = await _node._spotify._search(query=query, type=type, iterator=True)
 
             return tracks[0] if return_first else tracks
-        return await node._spotify._search(query=query, type=type)
+        return await _node._spotify._search(query=query, type=type)
 
     @classmethod
     def iterator(cls,
@@ -334,7 +338,7 @@ class SpotifyTrack:
 
         return results[0]
 
-    async def fulfill(self, *, player: Player, cls: Playable, populate: bool) -> Playable:
+    async def fulfill(self, *, player: Player, cls: type[Playable], populate: bool) -> Playable:
         """
         Parameters
         ----------
@@ -397,7 +401,7 @@ class SpotifyClient:
         self.session = aiohttp.ClientSession()
 
         self._bearer_token: str = None  # type: ignore
-        self._expiry: int = 0
+        self._expiry: float | int = 0
 
     @property
     def grant_headers(self) -> dict:
@@ -417,6 +421,14 @@ class SpotifyClient:
             data = await resp.json()
             self._bearer_token = data['access_token']
             self._expiry = time.time() + (int(data['expires_in']) - 10)
+
+    @overload
+    async def _search(self, query: str, type: SpotifySearchType = SpotifySearchType.track, iterator: Literal[False] = False) -> SpotifyTrack:
+        ...
+    
+    @overload
+    async def _search(self, query: str, type: SpotifySearchType = SpotifySearchType.track, iterator: Literal[True] = True) -> list[SpotifyTrack]:
+        ...
 
     async def _search(self,
                       query: str,
@@ -491,3 +503,5 @@ class SpotifyClient:
             else:
                 tracks = data['tracks']['items']
                 return [SpotifyTrack(t) for t in tracks]
+        
+        raise RuntimeError(f"Unkown Error, data: {data}")

@@ -43,6 +43,7 @@ if TYPE_CHECKING:
     from .player import Player
     from .tracks import *
     from .types.request import Request
+    from .types.track import Track as TrackPayload
     from .ext import spotify as spotify_
 
     PlayableT = TypeVar('PlayableT', bound=Playable)
@@ -265,6 +266,9 @@ class Node:
             A list of found tracks converted to the provided cls.
         """
         data = await self._send(method='GET', path='loadtracks', query=f'identifier={query}')
+
+        assert data is not None, ValueError("Expected a response object from lavalink, got 204.")
+
         load_type = try_enum(LoadType, data.get("loadType"))
 
         if load_type is LoadType.load_failed:
@@ -286,7 +290,7 @@ class Node:
 
         return [cls(track_data) for track_data in data["tracks"]]
 
-    async def get_playlist(self, cls: Playlist, query: str):
+    async def get_playlist(self, cls: type[Playlist], query: str):
         """|coro|
 
         Search for and return a :class:`tracks.Playlist` given an identifier.
@@ -311,6 +315,8 @@ class Node:
             An unspecified error occurred when loading the playlist.
         """
         data = await self._send(method='GET', path='loadtracks', query=f'identifier={query}')
+
+        assert data is not None, ValueError("Expected a response object from lavalink, got 204.")
 
         load_type = try_enum(LoadType, data.get("loadType"))
 
@@ -339,7 +345,9 @@ class Node:
             The Tracks unique encoded string.
         """
         encoded = urllib.parse.quote(encoded)
-        data = await self._send(method='GET', path='decodetrack', query=f'encodedTrack={encoded}')
+        data: TrackPayload | None = await self._send(method='GET', path='decodetrack', query=f'encodedTrack={encoded}') # type: ignore
+
+        assert data is not None, ValueError("Expected a response object from lavalink, got 204.")
 
         return cls(data=data)
 
@@ -503,9 +511,9 @@ class NodePool:
                            query: str,
                            /,
                            *,
-                           cls: Playlist,
+                           cls: type[Playlist],
                            node: Node | None = None
-                           ) -> Playlist:
+                           ) -> Playlist | None:
         """|coro|
 
         Helper method to retrieve a playlist from the NodePool without fetching a :class:`Node`.
@@ -529,7 +537,7 @@ class NodePool:
         Returns
         -------
         Playlist
-            A Playlist with its tracks.
+            A Playlist with its tracks. Returns ``None`` if nothing was found.
         """
         if not node:
             node = cls_.get_connected_node()

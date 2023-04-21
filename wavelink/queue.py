@@ -42,7 +42,7 @@ __all__ = (
 class BaseQueue:
 
     def __init__(self) -> None:
-        self._queue: deque[Playable, spotify.SpotifyTrack] = deque()
+        self._queue: deque[Playable | spotify.SpotifyTrack] = deque()
 
     def __str__(self) -> str:
         """String showing all Playable objects appearing as a list."""
