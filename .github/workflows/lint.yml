@@ -1,0 +1,94 @@
+name: Lints
+
+on:
+  push:
+  pull_request:
+    types: [opened, edited, synchronize, reopened]
+
+jobs:
+  lib:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.10", "3.11"]
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+        with:
+          fetch-depth: 0
+
+      - name: Install CPython
+        uses: actions/setup-python@v2
+        with:
+          python-version: ${{matrix.python-version}}
+
+      - name: Install Deps
+        run: |
+          python -m ensurepip
+          pip install wheel setuptools
+          pip install -r requirements.txt
+
+      - name: Build
+        run: python setup.py sdist bdist_wheel
+
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+    - name: checkout
+      uses: actions/checkout@v2
+
+    - name: Setup Python
+      uses: actions/setup-python@v2
+      with:
+        python-version: 3.10
+
+    - name: install deps
+      run: |
+        python -m ensurepip
+        pip install black isort
+
+    - name: run black
+      run: |
+        black twitchio --verbose --check
+    
+    - name: run isort
+      run: |
+        isort twitchio --check
+  
+  pyright: # adapted from rapptz/discord.py's pyright lint
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: [ "3.10", "3.11" ]
+
+    name: pyright ${{ matrix.python-version }}
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+
+      - name: Set up CPython ${{ matrix.python-version }}
+        uses: actions/setup-python@v4
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: Install dependencies
+        id: install-deps
+        run: |
+          python -m pip install --upgrade pip setuptools wheel
+          pip install -U -r requirements.txt
+      
+      - name: Setup node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '16'
+
+      - name: Run Pyright
+        uses: jakebailey/pyright-action@v1
+        with:
+          version: '1.1.304'
+          warnings: false
+          no-comments: ${{matrix.python-version}} != "3.11"

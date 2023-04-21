@@ -1,0 +1,47 @@
+name: Feature Request
+description: Suggest a feature for wavelink
+labels: new feature
+body:
+  - type: input
+    attributes:
+      label: Summary
+      description: >
+        Title your feature request.
+    validations:
+      required: true
+
+  - type: textarea
+    attributes:
+      label: The Problem
+      description: >
+        Explain what is wrong with the library currently.
+        Is there a workaround?
+    validations:
+      required: true
+
+  - type: dropdown
+    attributes:
+      multiple: false
+      label: What is the feature request for?
+      options:
+        - Wavelink
+        - Spotify ext
+        - The documentation
+    validations:
+      required: true
+
+  - type: textarea
+    attributes:
+      label: The Current Solution
+      description: What does the library do now?
+    validations:
+      required: true
+
+  - type: textarea
+    attributes:
+      label: Your solution
+      description: >
+        What would you want this feature to look like?
+        What API do you have in mind for users?
+    validations:
+      required: true
