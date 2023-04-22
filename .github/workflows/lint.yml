@@ -51,11 +51,11 @@ jobs:
 
     - name: run black
       run: |
-        black twitchio --verbose --check
+        black wavelink --verbose --check
     
     - name: run isort
       run: |
-        isort twitchio --check
+        isort wavelink --check
   
   pyright: # adapted from rapptz/discord.py's pyright lint
     runs-on: ubuntu-latest
