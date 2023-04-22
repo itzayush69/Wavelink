@@ -46,3 +46,12 @@ reportMissingImports = "none"
 reportUnnecessaryTypeIgnoreComment = "warning"
 pythonVersion = "3.10"
 typeCheckingMode = "basic"
+
+[tool.black]
+line-length = 120
+
+[tool.isort]
+profile = "black"
+combine_star = true
+combine_as_imports = true
+line_length = 120

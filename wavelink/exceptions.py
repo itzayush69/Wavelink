@@ -26,18 +26,17 @@ from __future__ import annotations
 from typing import Any
 
 __all__ = (
-    'WavelinkException',
-    'AuthorizationFailed',
-    'InvalidNode',
-    'InvalidLavalinkVersion',
-    'InvalidLavalinkResponse',
-    'NoTracksError',
-    'QueueEmpty'
+    "WavelinkException",
+    "AuthorizationFailed",
+    "InvalidNode",
+    "InvalidLavalinkVersion",
+    "InvalidLavalinkResponse",
+    "NoTracksError",
+    "QueueEmpty",
 )
 
 
 class WavelinkException(Exception):
-
     def __init__(self, *args: Any, **kwargs: Any) -> None:
         super().__init__(*args)
 
@@ -55,10 +54,9 @@ class InvalidLavalinkVersion(WavelinkException):
 
 
 class InvalidLavalinkResponse(WavelinkException):
-
     def __init__(self, *args: Any, **kwargs: Any) -> None:
         super().__init__(*args)
-        self.status: int | None = kwargs.get('status')
+        self.status: int | None = kwargs.get("status")
 
 
 class NoTracksError(WavelinkException):

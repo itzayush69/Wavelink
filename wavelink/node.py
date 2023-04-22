@@ -27,29 +27,29 @@ import logging
 import random
 import re
 import string
+import urllib.parse
 from typing import TYPE_CHECKING, Any, TypeVar
 
 import aiohttp
 import discord
 from discord.enums import try_enum
 from discord.utils import MISSING, classproperty
-import urllib.parse
 
 from .enums import LoadType, NodeStatus
 from .exceptions import *
 from .websocket import Websocket
 
 if TYPE_CHECKING:
+    from .ext import spotify as spotify_
     from .player import Player
     from .tracks import *
     from .types.request import Request
     from .types.track import Track as TrackPayload
-    from .ext import spotify as spotify_
 
-    PlayableT = TypeVar('PlayableT', bound=Playable)
-    
+    PlayableT = TypeVar("PlayableT", bound=Playable)
 
-__all__ = ('Node', 'NodePool')
+
+__all__ = ("Node", "NodePool")
 
 
 logger: logging.Logger = logging.getLogger(__name__)
@@ -100,25 +100,25 @@ class Node:
     """
 
     def __init__(
-            self,
-            *,
-            id: str | None = None,
-            uri: str,
-            password: str,
-            secure: bool = False,
-            use_http: bool = False,
-            session: aiohttp.ClientSession = MISSING,
-            heartbeat: float = 15.0,
-            retries: int | None = None,
+        self,
+        *,
+        id: str | None = None,
+        uri: str,
+        password: str,
+        secure: bool = False,
+        use_http: bool = False,
+        session: aiohttp.ClientSession = MISSING,
+        heartbeat: float = 15.0,
+        retries: int | None = None,
     ) -> None:
         if id is None:
-            id = ''.join(random.sample(string.ascii_letters + string.digits, 12))
+            id = "".join(random.sample(string.ascii_letters + string.digits, 12))
 
         self._id: str = id
         self._uri: str = uri
         self._secure: bool = secure
         self._use_http: bool = use_http
-        host: str = re.sub(r'(?:http|ws)s?://', '', self._uri)
+        host: str = re.sub(r"(?:http|ws)s?://", "", self._uri)
         self._host: str = f'{"https://" if secure else "http://"}{host}'
         self._password: str = password
 
@@ -191,10 +191,10 @@ class Node:
 
     async def _connect(self, client: discord.Client) -> None:
         if client.user is None:
-            raise RuntimeError('')
+            raise RuntimeError("")
 
         if not self._session:
-            self._session = aiohttp.ClientSession(headers={'Authorization': self._password})
+            self._session = aiohttp.ClientSession(headers={"Authorization": self._password})
 
         self.client = client
 
@@ -202,14 +202,14 @@ class Node:
 
         await self._websocket.connect()
 
-        async with self._session.get(f'{self._host}/version') as resp:
+        async with self._session.get(f"{self._host}/version") as resp:
             version: str = await resp.text()
 
-            if version.endswith('-SNAPSHOT'):
+            if version.endswith("-SNAPSHOT"):
                 self._major_version = 3
                 return
 
-            version_tuple = tuple(int(v) for v in version.split('.'))
+            version_tuple = tuple(int(v) for v in version.split("."))
             if version_tuple[0] < 3:
                 raise InvalidLavalinkVersion(f'Wavelink 2 is not compatible with Lavalink "{version}".')
 
@@ -218,25 +218,28 @@ class Node:
 
             self._major_version = version_tuple[0]
 
-    async def _send(self,
-                    *,
-                    method: str,
-                    path: str,
-                    guild_id: int | str | None = None,
-                    query: str | None = None,
-                    data: Request | None = None,
-                    ) -> dict[str, Any] | None:
-
-        uri: str = f'{self._host}/' \
-                   f'v{self._major_version}/' \
-                   f'{path}' \
-                   f'{f"/{guild_id}" if guild_id else ""}' \
-                   f'{f"?{query}" if query else ""}'
+    async def _send(
+        self,
+        *,
+        method: str,
+        path: str,
+        guild_id: int | str | None = None,
+        query: str | None = None,
+        data: Request | None = None,
+    ) -> dict[str, Any] | None:
+        uri: str = (
+            f"{self._host}/"
+            f"v{self._major_version}/"
+            f"{path}"
+            f'{f"/{guild_id}" if guild_id else ""}'
+            f'{f"?{query}" if query else ""}'
+        )
 
         async with self._session.request(method=method, url=uri, json=data or {}) as resp:
             if resp.status >= 300:
-                raise InvalidLavalinkResponse(f'An error occurred when attempting to reach: "{uri}".',
-                                              status=resp.status)
+                raise InvalidLavalinkResponse(
+                    f'An error occurred when attempting to reach: "{uri}".', status=resp.status
+                )
 
             if resp.status == 204:
                 return
@@ -265,7 +268,7 @@ class Node:
         list[PlayableT]
             A list of found tracks converted to the provided cls.
         """
-        data = await self._send(method='GET', path='loadtracks', query=f'identifier={query}')
+        data = await self._send(method="GET", path="loadtracks", query=f"identifier={query}")
 
         assert data is not None, ValueError("Expected a response object from lavalink, got 204.")
 
@@ -274,7 +277,7 @@ class Node:
         if load_type is LoadType.load_failed:
             # TODO - Proper Exception...
 
-            raise ValueError('Track Failed to load.')
+            raise ValueError("Track Failed to load.")
 
         if load_type is LoadType.no_matches:
             return []
@@ -286,7 +289,7 @@ class Node:
         if load_type is not LoadType.search_result:
             # TODO - Proper Exception...
 
-            raise ValueError('Track Failed to load.')
+            raise ValueError("Track Failed to load.")
 
         return [cls(track_data) for track_data in data["tracks"]]
 
@@ -314,7 +317,7 @@ class Node:
         WavelinkException
             An unspecified error occurred when loading the playlist.
         """
-        data = await self._send(method='GET', path='loadtracks', query=f'identifier={query}')
+        data = await self._send(method="GET", path="loadtracks", query=f"identifier={query}")
 
         assert data is not None, ValueError("Expected a response object from lavalink, got 204.")
 
@@ -322,7 +325,7 @@ class Node:
 
         if load_type is LoadType.load_failed:
             # TODO Proper exception...
-            raise ValueError('Tracks failed to Load.')
+            raise ValueError("Tracks failed to Load.")
 
         if load_type is LoadType.no_matches:
             return None
@@ -345,7 +348,7 @@ class Node:
             The Tracks unique encoded string.
         """
         encoded = urllib.parse.quote(encoded)
-        data: TrackPayload | None = await self._send(method='GET', path='decodetrack', query=f'encodedTrack={encoded}') # type: ignore
+        data: TrackPayload | None = await self._send(method="GET", path="decodetrack", query=f"encodedTrack={encoded}")  # type: ignore
 
         assert data is not None, ValueError("Expected a response object from lavalink, got 204.")
 
@@ -371,11 +374,7 @@ class NodePool:
 
     @classmethod
     async def connect(
-            cls,
-            *,
-            client: discord.Client,
-            nodes: list[Node],
-            spotify: spotify_.SpotifyClient | None = None
+        cls, *, client: discord.Client, nodes: list[Node], spotify: spotify_.SpotifyClient | None = None
     ) -> dict[str, Node]:
         """|coro|
 
@@ -396,10 +395,9 @@ class NodePool:
             A mapping of :class:`Node` identifier to :class:`Node`.
         """
         if client.user is None:
-            raise RuntimeError('')
+            raise RuntimeError("")
 
         for node in nodes:
-
             if spotify:
                 node._spotify = spotify
 
@@ -410,8 +408,10 @@ class NodePool:
             try:
                 await node._connect(client)
             except AuthorizationFailed:
-                logger.error(f'The Node <{node!r}> failed to authenticate properly. '
-                             f'Please check your password and try again.')
+                logger.error(
+                    f"The Node <{node!r}> failed to authenticate properly. "
+                    f"Please check your password and try again."
+                )
             else:
                 cls.__nodes[node.id] = node
 
@@ -448,7 +448,7 @@ class NodePool:
             return cls.__nodes[id]
 
         if not cls.__nodes:
-            raise InvalidNode('No Node currently exists on the Wavelink NodePool.')
+            raise InvalidNode("No Node currently exists on the Wavelink NodePool.")
 
         nodes = cls.__nodes.values()
         return sorted(nodes, key=lambda n: len(n.players))[0]
@@ -470,18 +470,14 @@ class NodePool:
 
         nodes: list[Node] = [n for n in cls.__nodes.values() if n.status is NodeStatus.CONNECTED]
         if not nodes:
-            raise InvalidNode('There are no Nodes on the Wavelink NodePool that are currently in the connected state.')
+            raise InvalidNode("There are no Nodes on the Wavelink NodePool that are currently in the connected state.")
 
         return sorted(nodes, key=lambda n: len(n.players))[0]
 
     @classmethod
-    async def get_tracks(cls_,  # type: ignore
-                         query: str,
-                         /,
-                         *,
-                         cls: type[PlayableT],
-                         node: Node | None = None
-                         ) -> list[PlayableT]:
+    async def get_tracks(
+        cls_, query: str, /, *, cls: type[PlayableT], node: Node | None = None  # type: ignore
+    ) -> list[PlayableT]:
         """|coro|
 
         Helper method to retrieve tracks from the NodePool without fetching a :class:`Node`.
@@ -507,13 +503,9 @@ class NodePool:
         return await node.get_tracks(cls=cls, query=query)
 
     @classmethod
-    async def get_playlist(cls_,  # type: ignore
-                           query: str,
-                           /,
-                           *,
-                           cls: type[Playlist],
-                           node: Node | None = None
-                           ) -> Playlist | None:
+    async def get_playlist(
+        cls_, query: str, /, *, cls: type[Playlist], node: Node | None = None  # type: ignore
+    ) -> Playlist | None:
         """|coro|
 
         Helper method to retrieve a playlist from the NodePool without fetching a :class:`Node`.

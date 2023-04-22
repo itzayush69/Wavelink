@@ -34,7 +34,7 @@ if TYPE_CHECKING:
     from .tracks import Playable
     from .types.events import EventOp
 
-__all__ = ('TrackEventPayload', )
+__all__ = ("TrackEventPayload",)
 
 
 class TrackEventPayload:
@@ -60,9 +60,9 @@ class TrackEventPayload:
     """
 
     def __init__(self, *, data: EventOp, track: Playable, original: Playable | None, player: Player) -> None:
-        self.event: TrackEventType = try_enum(TrackEventType, data['type'])
+        self.event: TrackEventType = try_enum(TrackEventType, data["type"])
         self.track: Playable = track
         self.original: Playable | None = original
         self.player: Player = player
 
-        self.reason: str | None = data.get('reason')
+        self.reason: str | None = data.get("reason")

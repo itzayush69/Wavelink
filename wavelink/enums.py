@@ -23,18 +23,16 @@ SOFTWARE.
 """
 from discord.enums import Enum
 
-__all__ = ('NodeStatus', 'TrackSource', 'LoadType', 'TrackEventType')
+__all__ = ("NodeStatus", "TrackSource", "LoadType", "TrackEventType")
 
 
 class NodeStatus(Enum):
-
     DISCONNECTED = 0
     CONNECTING = 1
     CONNECTED = 2
 
 
 class TrackSource(Enum):
-
     YouTube = 0
     YouTubeMusic = 1
     SoundCloud = 2
@@ -43,7 +41,6 @@ class TrackSource(Enum):
 
 
 class LoadType(Enum):
-
     track_loaded = "TRACK_LOADED"
     playlist_loaded = "PLAYLIST_LOADED"
     search_result = "SEARCH_RESULT"
@@ -52,6 +49,5 @@ class LoadType(Enum):
 
 
 class TrackEventType(Enum):
-
-    START = 'TrackStartEvent'
-    END = 'TrackEndEvent'
+    START = "TrackStartEvent"
+    END = "TrackEndEvent"

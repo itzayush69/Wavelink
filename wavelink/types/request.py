@@ -30,4 +30,4 @@ class IdentifierRequest(_BaseRequest):
     identifier: str
 
 
-Request: TypeAlias = '_BaseRequest | EncodedTrackRequest | IdentifierRequest'
+Request: TypeAlias = "_BaseRequest | EncodedTrackRequest | IdentifierRequest"
