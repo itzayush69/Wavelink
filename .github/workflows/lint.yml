@@ -27,11 +27,11 @@ jobs:
       - name: Install Deps
         run: |
           python -m ensurepip
-          pip install wheel setuptools
+          pip install wheel setuptools build
           pip install -r requirements.txt
 
       - name: Build
-        run: python setup.py sdist bdist_wheel
+        run: python -m build
 
   lint:
     runs-on: ubuntu-latest
@@ -42,7 +42,7 @@ jobs:
     - name: Setup Python
       uses: actions/setup-python@v2
       with:
-        python-version: 3.10
+        python-version: "3.10"
 
     - name: install deps
       run: |
