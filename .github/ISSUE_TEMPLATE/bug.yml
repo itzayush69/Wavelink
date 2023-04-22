@@ -1,0 +1,52 @@
+name: Bug Report
+description: For issues with the library that appear to be unintended.
+
+body:
+- type: markdown
+  attributes:
+    value: >
+      If you are looking for support with the library, this is not the place to find it!
+      Please join our discord server for support: https://discord.gg/RAKc3HF
+      
+      Support requests will be closed and redirected to the discord server.
+- type: textarea
+  attributes:
+    label: Code
+    description: >
+      Please provide the relevant code that causes this error.
+      We are not looking for your entire bot code. 
+      Please provide the minimal amount of code that will still reproduce this issue.
+    render: python
+  validations:
+    required: true
+- type: textarea
+  attributes:
+    label: Traceback
+    description: Please provide the traceback that is occurring.
+    render: python
+  validations:
+    required: true
+- type: textarea
+  attributes:
+    label: Additional information
+    description: >
+      Please provide additional information here.
+      This includes:
+        - Operating System
+        - Python version
+        - Wavelink version
+        - What was happening when this bug occurred
+  validations:
+    required: true
+- type: checkboxes
+  attributes:
+    label: To-Dos
+    description: >
+      Please make sure you've completed all these steps before submitting your bug
+    options:
+      - label: There are no issues already open regarding this bug
+        required: true
+      - label: I have removed any bot tokens, lavalink URLs/Passwords, and Spotify credentials
+        required: true
+      - label: I believe this is a bug. I am not looking for help regarding usage of the library.
+        required: true
