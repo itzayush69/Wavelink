@@ -76,11 +76,16 @@ class Websocket:
         assert self.node.client is not None
         assert self.node.client.user is not None
 
-        return {
-            'Authorization': self.node.password,
+        data: dict[str, str] = {
+            'Authorization': str(self.node.password),
             'User-Id': str(self.node.client.user.id),
-            'Client-Name': f'Wavelink/{__version__}'
+            'Client-Name': f'Wavelink/{__version__}',
         }
+
+        if self.node._session_id:
+            data['Session-Id'] = self.node._session_id
+
+        return data
 
     def is_connected(self) -> bool:
         return self.socket is not None and not self.socket.closed
@@ -103,9 +108,9 @@ class Websocket:
         uri: str = self.node._host.removeprefix('https://').removeprefix('http://')
 
         if self.node._use_http:
-            uri: str = f'{"https://" if self.node._secure else "http://"}{uri}'
+            uri: str = f'{"https://" if self.node._secure else "http://"}{uri}/v4/websocket'
         else:
-            uri: str = f'{"wss://" if self.node._secure else "ws://"}{uri}'
+            uri: str = f'{"wss://" if self.node._secure else "ws://"}{uri}/v4/websocket'
 
         heartbeat: float = self.node.heartbeat
 
@@ -120,7 +125,6 @@ class Websocket:
         if self.is_connected():
             self.retries = self._original_attempts
             self._reconnect_task = None
-            # TODO - Configure Resuming...
         else:
             await self._reconnect()
             return
@@ -221,7 +225,7 @@ class Websocket:
                                  f'Disregarding.')
                     continue
 
-                track = await self.node.build_track(cls=wavelink.GenericTrack, encoded=data['encodedTrack'])
+                track = wavelink.GenericTrack(data=data['track'])
                 payload: TrackEventPayload = TrackEventPayload(
                     data=data,
                     track=track,

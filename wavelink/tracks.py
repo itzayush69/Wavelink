@@ -66,7 +66,7 @@ class Playlist(metaclass=abc.ABCMeta):
     """
 
     def __init__(self, data: dict[str, Any]):
-        self.data: dict[str, Any] = data
+        self.data: dict[str, Any] = data['data']
 
 
 class Playable(metaclass=abc.ABCMeta):
@@ -114,6 +114,13 @@ class Playable(metaclass=abc.ABCMeta):
         The author of this track. Could be None.
     identifier: Optional[str]
         The Youtube/YoutubeMusic identifier for this track. Could be None.
+    artwork: Optional[str]
+        The URL of the track artwork if available. Could be None.
+    isrc: Optional[str]
+        The International Standard Recording Code associated with this track. Could be None.
+
+    .. versionchanged:: 3.0.0
+        Added the isrc and artwork fields.
     """
 
     PREFIX: ClassVar[str] = ''
@@ -137,6 +144,9 @@ class Playable(metaclass=abc.ABCMeta):
         self.uri: str | None = info.get('uri')
         self.author: str | None = info.get('author')
         self.identifier: str | None = info.get('identifier')
+
+        self.artwork: str | None = info.get('artworkUrl')
+        self.isrc: str | None = info.get('isrc')
 
     def __hash__(self) -> int:
         return hash(self.encoded)
@@ -257,6 +267,9 @@ class YouTubeTrack(Playable):
     def thumbnail(self) -> str:
         """The URL to the thumbnail of this video.
 
+        This attribute is different to :attr:`artwork` as it is guaranteed to exist
+        regardless of what Lavalink returns, and can be fetched via :meth:`fetch_thumbnail`.
+
         .. note::
 
             Due to YouTube limitations this may not always return a valid thumbnail.
@@ -336,13 +349,13 @@ class YouTubePlaylist(Playable, Playlist):
 
     def __init__(self, data: dict):
         self.tracks: list[YouTubeTrack] = []
-        self.name: str = data["playlistInfo"]["name"]
+        self.name: str = data['data']["info"]["name"]
 
-        self.selected_track: Optional[int] = data["playlistInfo"].get("selectedTrack")
+        self.selected_track: Optional[int] = data['data']["info"].get("selectedTrack")
         if self.selected_track is not None:
             self.selected_track = int(self.selected_track)
 
-        for track_data in data["tracks"]:
+        for track_data in data['data']["tracks"]:
             track = YouTubeTrack(track_data)
             self.tracks.append(track)
 
@@ -375,13 +388,13 @@ class SoundCloudPlaylist(Playable, Playlist):
 
     def __init__(self, data: dict):
         self.tracks: list[SoundCloudTrack] = []
-        self.name: str = data["playlistInfo"]["name"]
+        self.name: str = data['data']["info"]["name"]
 
-        self.selected_track: Optional[int] = data["playlistInfo"].get("selectedTrack")
+        self.selected_track: Optional[int] = data['data']["info"].get("selectedTrack")
         if self.selected_track is not None:
             self.selected_track = int(self.selected_track)
 
-        for track_data in data["tracks"]:
+        for track_data in data['data']["tracks"]:
             track = SoundCloudTrack(track_data)
             self.tracks.append(track)
 

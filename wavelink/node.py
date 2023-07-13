@@ -212,30 +212,24 @@ class Node:
         await self._websocket.connect()
 
         async with self._session.get(f'{self._host}/version') as resp:
-            version: str = await resp.text()
-
-            if version.endswith('-SNAPSHOT'):
-                self._major_version = 3
-                return
+            version_str: str = await resp.text()
+            version: str = version_str.split('-')[0]
 
             try:
                 version_tuple = tuple(int(v) for v in version.split('.'))
             except ValueError:
-                logging.warning(f'Lavalink "{version}" is unknown and may not be compatible with: '
+                logging.warning(f'Lavalink "{version_str}" is unknown and may not be compatible with: '
                                 f'Wavelink "{__version__}". Wavelink is assuming the Lavalink version.')
 
-                self._major_version = 3
+                self._major_version = 4
                 return
 
-            if version_tuple[0] < 3:
-                raise InvalidLavalinkVersion(f'Wavelink "{__version__}" is not compatible with Lavalink "{version}".')
-
-            if version_tuple[0] == 3 and version_tuple[1] < 7:
-                raise InvalidLavalinkVersion(f'Wavelink "{__version__}" is not compatible with '
-                                             f'Lavalink versions under "3.7".')
+            if version_tuple[0] < 4:
+                raise InvalidLavalinkVersion(f'Wavelink "{__version__}" is not compatible with Lavalink "{version_str}". '
+                                             f'Please use Lavalink 4+.')
 
             self._major_version = version_tuple[0]
-            logger.info(f'Lavalink version "{version}" connected for Node: {self.id}')
+            logger.info(f'Lavalink version "{version_str}" connected for Node: {self.id}')
 
     async def _send(self,
                     *,
@@ -260,8 +254,8 @@ class Node:
             if resp.content_type == 'application/json':
                 rdata = await resp.json()
 
-            logger.debug(f'Node {self} received payload from Lavalink after sending to "{uri}" with response: '
-                         f'<status={resp.status}, data={rdata}>')
+            logger.debug(f'Node {self} received payload from Lavalink after sending to [{method}] "{uri}" '
+                         f'with response: <status={resp.status}, data={rdata}>')
 
             if resp.status >= 300:
                 raise InvalidLavalinkResponse(f'An error occurred when attempting to reach: "{uri}".',
@@ -308,7 +302,7 @@ class Node:
             return []
 
         if load_type is LoadType.track_loaded:
-            track_data = data["tracks"][0]
+            track_data = data["data"]
             return [cls(track_data)]
 
         if load_type is not LoadType.search_result:
@@ -316,7 +310,7 @@ class Node:
 
             raise ValueError('Track Failed to load.')
 
-        return [cls(track_data) for track_data in data["tracks"]]
+        return [cls(track_data) for track_data in data["data"]]
 
     async def get_playlist(self, cls: Playlist, query: str):
         """|coro|

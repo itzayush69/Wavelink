@@ -74,21 +74,21 @@ class LoadType(Enum):
     Attributes
     ----------
     track_loaded
-        "TRACK_LOADED"
+        "track"
     playlist_loaded
-        "PLAYLIST_LOADED"
+        "playlist"
     search_result
-        "SEARCH_RESULT"
+        "search"
     no_matches
-        "NO_MATCHES"
+        "empty"
     load_failed
-        "LOAD_FAILED"
+        "error"
     """
-    track_loaded = "TRACK_LOADED"
-    playlist_loaded = "PLAYLIST_LOADED"
-    search_result = "SEARCH_RESULT"
-    no_matches = "NO_MATCHES"
-    load_failed = "LOAD_FAILED"
+    track_loaded = "track"
+    playlist_loaded = "playlist"
+    search_result = "search"
+    no_matches = "empty"
+    load_failed = "error"
 
 
 class TrackEventType(Enum):
