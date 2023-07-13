@@ -54,9 +54,7 @@ __all__ = ("Player",)
 logger: logging.Logger = logging.getLogger(__name__)
 
 
-VoiceChannel = Union[
-    discord.VoiceChannel, discord.StageChannel
-]  # todo: VocalGuildChannel?
+VoiceChannel = Union[discord.VoiceChannel, discord.StageChannel]  # todo: VocalGuildChannel?
 
 
 class Player(discord.VoiceProtocol):
@@ -132,7 +130,7 @@ class Player(discord.VoiceProtocol):
         channel: VoiceChannel = MISSING,
         *,
         nodes: list[Node] | None = None,
-        swap_node_on_disconnect: bool = True
+        swap_node_on_disconnect: bool = True,
     ) -> None:
         self.client: discord.Client = client
         self.channel: VoiceChannel | None = channel
@@ -154,7 +152,7 @@ class Player(discord.VoiceProtocol):
 
         if not self.client:
             if self.current_node.client is None:
-                raise RuntimeError('')
+                raise RuntimeError("")
             self.client = self.current_node.client
 
         self._guild: discord.Guild | None = None
@@ -184,24 +182,26 @@ class Player(discord.VoiceProtocol):
         self._destroyed: bool = False
 
     async def _auto_play_event(self, payload: TrackEventPayload) -> None:
-        logger.debug(f'Player {self.guild.id} entered autoplay event.')
+        logger.debug(f"Player {self.guild.id} entered autoplay event.")
 
         if not self.autoplay:
-            logger.debug(f'Player {self.guild.id} autoplay is set to False. Exiting autoplay event.')
+            logger.debug(f"Player {self.guild.id} autoplay is set to False. Exiting autoplay event.")
             return
 
-        if payload.reason == 'REPLACED':
-            logger.debug(f'Player {self.guild.id} autoplay reason is REPLACED. Exiting autoplay event.')
+        if payload.reason == "REPLACED":
+            logger.debug(f"Player {self.guild.id} autoplay reason is REPLACED. Exiting autoplay event.")
             return
 
         if self.queue.loop:
-            logger.debug(f'Player {self.guild.id} autoplay default queue.loop is set to True.')
+            logger.debug(f"Player {self.guild.id} autoplay default queue.loop is set to True.")
 
             try:
                 track = self.queue.get()
             except QueueEmpty:
-                logger.debug(f'Player {self.guild.id} autoplay default queue.loop is set to True '
-                             f'but no track was available. Exiting autoplay event.')
+                logger.debug(
+                    f"Player {self.guild.id} autoplay default queue.loop is set to True "
+                    f"but no track was available. Exiting autoplay event."
+                )
                 return
 
             logger.debug(f'Player {self.guild.id} autoplay default queue.loop is set to True. Looping track "{track}"')
@@ -214,7 +214,7 @@ class Player(discord.VoiceProtocol):
             populate = len(self.auto_queue) < self._auto_threshold
             await self.play(track, populate=populate)
 
-            logger.debug(f'Player {self.guild.id} autoplay found track in default queue, populate={populate}.')
+            logger.debug(f"Player {self.guild.id} autoplay found track in default queue, populate={populate}.")
             return
 
         if self.queue.loop_all:
@@ -222,7 +222,7 @@ class Player(discord.VoiceProtocol):
             return
 
         if not self.auto_queue:
-            logger.debug(f'Player {self.guild.id} has no auto queue. Exiting autoplay event.')
+            logger.debug(f"Player {self.guild.id} has no auto queue. Exiting autoplay event.")
             return
 
         await self.queue.put_wait(await self.auto_queue.get_wait())
@@ -336,9 +336,8 @@ class Player(discord.VoiceProtocol):
     async def _update_event(self, data: PlayerUpdateOp | None) -> None:
         assert self._guild is not None
 
-        if data is None: 
+        if data is None:
             if self.swap_on_disconnect:
-
                 if len(self.nodes) < 2:
                     return
 
@@ -355,14 +354,14 @@ class Player(discord.VoiceProtocol):
                 await self._swap_state()
             return
 
-        data.pop('op')  # type: ignore
+        data.pop("op")  # type: ignore
         self._player_state.update(**data)
 
-        state: PlayerState = data['state']
+        state: PlayerState = data["state"]
         self.last_update = datetime.datetime.fromtimestamp(state.get("time", 0) / 1000, datetime.timezone.utc)
-        self.last_position = state.get('position', 0)
+        self.last_position = state.get("position", 0)
 
-        self._ping = state['ping']
+        self._ping = state["ping"]
 
     async def on_voice_server_update(self, data: VoiceServerUpdate) -> None:
         """|coro|
@@ -373,8 +372,8 @@ class Player(discord.VoiceProtocol):
 
             Do not override this method.
         """
-        self._voice_state['token'] = data['token']
-        self._voice_state['endpoint'] = data['endpoint']
+        self._voice_state["token"] = data["token"]
+        self._voice_state["endpoint"] = data["endpoint"]
 
         await self._dispatch_voice_update()
 
@@ -396,7 +395,7 @@ class Player(discord.VoiceProtocol):
             await self._destroy()
             return
 
-        self._voice_state['session_id'] = data['session_id']
+        self._voice_state["session_id"] = data["session_id"]
         self.channel = self.client.get_channel(int(channel_id))  # type: ignore
 
         if not self._guild:
@@ -410,21 +409,23 @@ class Player(discord.VoiceProtocol):
         data = data or self._voice_state
 
         try:
-            session_id: str = data['session_id']
-            token: str = data['token']
-            endpoint: str = data['endpoint']
+            session_id: str = data["session_id"]
+            token: str = data["token"]
+            endpoint: str = data["endpoint"]
         except KeyError:
             return
 
-        voice: Request = {'voice': {'sessionId': session_id, 'token': token, 'endpoint': endpoint}}
+        voice: Request = {"voice": {"sessionId": session_id, "token": token, "endpoint": endpoint}}
         self._player_state.update(**voice)
 
-        resp: dict[str, Any] = await self.current_node._send(method='PATCH',
-                                                             path=f'sessions/{self.current_node._session_id}/players',
-                                                             guild_id=self._guild.id,
-                                                             data=voice)
+        resp: dict[str, Any] = await self.current_node._send(
+            method="PATCH",
+            path=f"sessions/{self.current_node._session_id}/players",
+            guild_id=self._guild.id,
+            data=voice,
+        )
 
-        logger.debug(f'Player {self.guild.id} is dispatching VOICE_UPDATE: {resp}')
+        logger.debug(f"Player {self.guild.id} is dispatching VOICE_UPDATE: {resp}")
 
     def _connection_check(self, channel: VoiceChannel) -> None:
         if channel.permissions_for(channel.guild.me).administrator:
@@ -433,7 +434,7 @@ class Player(discord.VoiceProtocol):
         if not channel.permissions_for(channel.guild.me).connect:
             logger.debug(f'Player tried connecting to channel "{channel.id}", but does not have correct permissions.')
 
-            raise InvalidChannelPermissions('You do not have connect permissions to join this channel.')
+            raise InvalidChannelPermissions("You do not have connect permissions to join this channel.")
 
         limit: int = channel.user_limit
         total: int = len(channel.members)
@@ -442,7 +443,7 @@ class Player(discord.VoiceProtocol):
             pass
 
         elif total >= limit:
-            msg: str = f'There are currently too many users in this channel. <{total}/{limit}>'
+            msg: str = f"There are currently too many users in this channel. <{total}/{limit}>"
             logger.debug(f'Player tried connecting to channel "{channel.id}", but the it is full. <{total}/{limit}>')
 
             raise InvalidChannelPermissions(msg)
@@ -452,7 +453,7 @@ class Player(discord.VoiceProtocol):
             self._invalidate(before_connect=True)
 
             msg: str = 'Please use the method "discord.VoiceChannel.connect" and pass this player to cls='
-            logger.debug(f'Player tried connecting without a channel. {msg}')
+            logger.debug(f"Player tried connecting without a channel. {msg}")
 
             raise InvalidChannelStateError(msg)
 
@@ -467,7 +468,7 @@ class Player(discord.VoiceProtocol):
             raise e
 
         await self.channel.guild.change_voice_state(channel=self.channel, **kwargs)
-        logger.info(f'Player {self.guild.id} connected to channel: {self.channel}')
+        logger.info(f"Player {self.guild.id} connected to channel: {self.channel}")
 
     async def move_to(self, channel: discord.VoiceChannel) -> None:
         """|coro|
@@ -482,17 +483,18 @@ class Player(discord.VoiceProtocol):
         self._connection_check(channel)
 
         await self.guild.change_voice_state(channel=channel)
-        logger.info(f'Player {self.guild.id} moved to channel: {channel}')
+        logger.info(f"Player {self.guild.id} moved to channel: {channel}")
 
-    async def play(self,
-                   track: Playable | spotify.SpotifyTrack,
-                   replace: bool = True,
-                   start: int | None = None,
-                   end: int | None = None,
-                   volume: int | None = None,
-                   *,
-                   populate: bool = False
-                   ) -> Playable:
+    async def play(
+        self,
+        track: Playable | spotify.SpotifyTrack,
+        replace: bool = True,
+        start: int | None = None,
+        end: int | None = None,
+        volume: int | None = None,
+        *,
+        populate: bool = False,
+    ) -> Playable:
         """|coro|
 
         Play a WaveLink Track.
@@ -556,10 +558,10 @@ class Player(discord.VoiceProtocol):
         assert self._guild is not None
 
         if isinstance(track, YouTubeTrack) and self.autoplay and populate:
-            query: str = f'https://www.youtube.com/watch?v={track.identifier}&list=RD{track.identifier}'
+            query: str = f"https://www.youtube.com/watch?v={track.identifier}&list=RD{track.identifier}"
 
             recos: YouTubePlaylist = await self.current_node.get_playlist(query=query, cls=YouTubePlaylist)
-            recos: list[YouTubeTrack] = getattr(recos, 'tracks', [])
+            recos: list[YouTubeTrack] = getattr(recos, "tracks", [])
 
             queues = set(self.queue) | set(self.auto_queue) | set(self.auto_queue.history) | {track}
 
@@ -580,48 +582,45 @@ class Player(discord.VoiceProtocol):
 
             for attr, value in original.__dict__.items():
                 if hasattr(track, attr):
-                    logger.warning(f'Player {self.guild.id} was unable to set attribute "{attr}" '
-                                   f'when converting a SpotifyTrack as it conflicts with the new track type.')
+                    logger.warning(
+                        f'Player {self.guild.id} was unable to set attribute "{attr}" '
+                        f"when converting a SpotifyTrack as it conflicts with the new track type."
+                    )
                     continue
 
                 setattr(track, attr, value)
 
-        data = {
-            'encodedTrack': track.encoded,
-            'position': start or 0,
-            'volume': volume or self._volume
-        }
+        data = {"encodedTrack": track.encoded, "position": start or 0, "volume": volume or self._volume}
 
         if end:
-            data['endTime'] = end
+            data["endTime"] = end
 
         self._current = track
         self._original = track
 
         try:
-
             resp: dict[str, Any] = await self.current_node._send(
-                method='PATCH',
-                path=f'sessions/{self.current_node._session_id}/players',
+                method="PATCH",
+                path=f"sessions/{self.current_node._session_id}/players",
                 guild_id=self._guild.id,
                 data=data,
-                query=f'noReplace={not replace}'
+                query=f"noReplace={not replace}",
             )
 
         except InvalidLavalinkResponse as e:
             self._current = None
             self._original = None
-            logger.debug(f'Player {self._guild.id} attempted to load track: {track}, but failed: {e}')
+            logger.debug(f"Player {self._guild.id} attempted to load track: {track}, but failed: {e}")
             raise e
 
-        self._player_state['track'] = resp['track']['encoded']
+        self._player_state["track"] = resp["track"]["encoded"]
 
         if not (self.queue.loop and self.queue._loaded):
             self.queue.history.put(track)
 
         self.queue._loaded = track
 
-        logger.debug(f'Player {self._guild.id} loaded and started playing track: {track}.')
+        logger.debug(f"Player {self._guild.id} loaded and started playing track: {track}.")
         return track
 
     async def set_volume(self, value: int) -> None:
@@ -638,12 +637,14 @@ class Player(discord.VoiceProtocol):
 
         self._volume = max(min(value, 1000), 0)
 
-        resp: dict[str, Any] = await self.current_node._send(method='PATCH',
-                                                             path=f'sessions/{self.current_node._session_id}/players',
-                                                             guild_id=self._guild.id,
-                                                             data={'volume': self._volume})
+        resp: dict[str, Any] = await self.current_node._send(
+            method="PATCH",
+            path=f"sessions/{self.current_node._session_id}/players",
+            guild_id=self._guild.id,
+            data={"volume": self._volume},
+        )
 
-        logger.debug(f'Player {self.guild.id} volume was set to {self._volume}.')
+        logger.debug(f"Player {self.guild.id} volume was set to {self._volume}.")
 
     async def seek(self, position: int) -> None:
         """|coro|
@@ -658,12 +659,14 @@ class Player(discord.VoiceProtocol):
         if not self._current:
             return
 
-        resp: dict[str, Any] = await self.current_node._send(method='PATCH',
-                                                             path=f'sessions/{self.current_node._session_id}/players',
-                                                             guild_id=self._guild.id,
-                                                             data={'position': position})
+        resp: dict[str, Any] = await self.current_node._send(
+            method="PATCH",
+            path=f"sessions/{self.current_node._session_id}/players",
+            guild_id=self._guild.id,
+            data={"position": position},
+        )
 
-        logger.debug(f'Player {self.guild.id} seeked current track to position {position}.')
+        logger.debug(f"Player {self.guild.id} seeked current track to position {position}.")
 
     async def pause(self) -> None:
         """|coro|
@@ -672,13 +675,15 @@ class Player(discord.VoiceProtocol):
         """
         assert self._guild is not None
 
-        resp: dict[str, Any] = await self.current_node._send(method='PATCH',
-                                                             path=f'sessions/{self.current_node._session_id}/players',
-                                                             guild_id=self._guild.id,
-                                                             data={'paused': True})
+        resp: dict[str, Any] = await self.current_node._send(
+            method="PATCH",
+            path=f"sessions/{self.current_node._session_id}/players",
+            guild_id=self._guild.id,
+            data={"paused": True},
+        )
 
         self._paused = True
-        logger.debug(f'Player {self.guild.id} was paused.')
+        logger.debug(f"Player {self.guild.id} was paused.")
 
     async def resume(self) -> None:
         """|coro|
@@ -687,13 +692,15 @@ class Player(discord.VoiceProtocol):
         """
         assert self._guild is not None
 
-        resp: dict[str, Any] = await self.current_node._send(method='PATCH',
-                                                             path=f'sessions/{self.current_node._session_id}/players',
-                                                             guild_id=self._guild.id,
-                                                             data={'paused': False})
+        resp: dict[str, Any] = await self.current_node._send(
+            method="PATCH",
+            path=f"sessions/{self.current_node._session_id}/players",
+            guild_id=self._guild.id,
+            data={"paused": False},
+        )
 
         self._paused = False
-        logger.debug(f'Player {self.guild.id} was resumed.')
+        logger.debug(f"Player {self.guild.id} was resumed.")
 
     async def stop(self, *, force: bool = True) -> None:
         """|coro|
@@ -716,20 +723,17 @@ class Player(discord.VoiceProtocol):
         if force:
             self.queue._loaded = None
 
-        resp: dict[str, Any] = await self.current_node._send(method='PATCH',
-                                                             path=f'sessions/{self.current_node._session_id}/players',
-                                                             guild_id=self._guild.id,
-                                                             data={'encodedTrack': None})
+        resp: dict[str, Any] = await self.current_node._send(
+            method="PATCH",
+            path=f"sessions/{self.current_node._session_id}/players",
+            guild_id=self._guild.id,
+            data={"encodedTrack": None},
+        )
 
-        self._player_state['track'] = None
-        logger.debug(f'Player {self.guild.id} was stopped.')
+        self._player_state["track"] = None
+        logger.debug(f"Player {self.guild.id} was stopped.")
 
-    async def set_filter(
-        self,
-        _filter: Filter,
-        /, *,
-        seek: bool = False
-    ) -> None:
+    async def set_filter(self, _filter: Filter, /, *, seek: bool = False) -> None:
         """|coro|
 
         Set the player's filter.
@@ -748,15 +752,14 @@ class Player(discord.VoiceProtocol):
         self._filter = _filter
         data: Request = {"filters": _filter._payload}
 
-        resp: dict[str, Any] = await self.current_node._send(method='PATCH',
-                                                             path=f'sessions/{self.current_node._session_id}/players',
-                                                             guild_id=self._guild.id,
-                                                             data=data)        
+        resp: dict[str, Any] = await self.current_node._send(
+            method="PATCH", path=f"sessions/{self.current_node._session_id}/players", guild_id=self._guild.id, data=data
+        )
 
         if self.is_playing() and seek:
             await self.seek(int(self.position))
 
-        logger.debug(f'Player {self.guild.id} set filter to: {_filter}')
+        logger.debug(f"Player {self.guild.id} set filter to: {_filter}")
 
     def _invalidate(self, *, silence: bool = False, before_connect: bool = False) -> None:
         self.current_node._players.pop(self._guild.id, None)
@@ -769,14 +772,14 @@ class Player(discord.VoiceProtocol):
         except AttributeError:
             pass
         except Exception as e:
-            logger.debug(f'Failed to cleanup player, most likely due to never having been connected: {e}')
+            logger.debug(f"Failed to cleanup player, most likely due to never having been connected: {e}")
 
         self._voice_state = {}
         self._player_state = {}
         self.channel = None
 
         if not silence:
-            logger.debug(f'Player {self._guild.id} was invalidated.')
+            logger.debug(f"Player {self._guild.id} was invalidated.")
 
     async def _destroy(self, *, guild_id: int | None = None) -> None:
         if self._destroyed:
@@ -786,13 +789,13 @@ class Player(discord.VoiceProtocol):
 
         guild_id = guild_id or self._guild.id
 
-        await self.current_node._send(method='DELETE',
-                                      path=f'sessions/{self.current_node._session_id}/players',
-                                      guild_id=guild_id)
+        await self.current_node._send(
+            method="DELETE", path=f"sessions/{self.current_node._session_id}/players", guild_id=guild_id
+        )
 
         self._destroyed = True
         self.current_node._invalidated.pop(guild_id, None)
-        logger.debug(f'Player {guild_id} was destroyed.')
+        logger.debug(f"Player {guild_id} was destroyed.")
 
     async def disconnect(self, **kwargs) -> None:
         """|coro|
@@ -806,20 +809,19 @@ class Player(discord.VoiceProtocol):
         self._invalidate()
         await self.guild.change_voice_state(channel=None)
 
-        logger.debug(f'Player {self._guild.id} was disconnected.')
+        logger.debug(f"Player {self._guild.id} was disconnected.")
 
     async def _swap_state(self) -> None:
         assert self._guild is not None
 
         try:
-            self._player_state['track']
+            self._player_state["track"]
         except KeyError:
             return
 
-        data: EncodedTrackRequest = {'encodedTrack': self._player_state['track'], 'position': self.position}
-        resp: dict[str, Any] = await self.current_node._send(method='PATCH',
-                                                             path=f'sessions/{self.current_node._session_id}/players',
-                                                             guild_id=self._guild.id,
-                                                             data=data)
+        data: EncodedTrackRequest = {"encodedTrack": self._player_state["track"], "position": self.position}
+        resp: dict[str, Any] = await self.current_node._send(
+            method="PATCH", path=f"sessions/{self.current_node._session_id}/players", guild_id=self._guild.id, data=data
+        )
 
-        logger.debug(f'Player {self.guild.id} is swapping State: {resp}')
+        logger.debug(f"Player {self.guild.id} is swapping State: {resp}")

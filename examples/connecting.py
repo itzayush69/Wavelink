@@ -22,22 +22,21 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 """
 import discord
-import wavelink
 from discord.ext import commands
+
+import wavelink
 
 
 class Bot(commands.Bot):
-
     def __init__(self) -> None:
         intents = discord.Intents.default()
-        super().__init__(intents=intents, command_prefix='?')
+        super().__init__(intents=intents, command_prefix="?")
 
     async def on_ready(self) -> None:
-        print(f'Logged in {self.user} | {self.user.id}')
+        print(f"Logged in {self.user} | {self.user.id}")
 
     async def setup_hook(self) -> None:
         # Wavelink 2.0 has made connecting Nodes easier... Simply create each Node
         # and pass it to NodePool.connect with the client/bot.
-        node: wavelink.Node = wavelink.Node(uri='http://localhost:2333', password='youshallnotpass')
+        node: wavelink.Node = wavelink.Node(uri="http://localhost:2333", password="youshallnotpass")
         await wavelink.NodePool.connect(client=self, nodes=[node])
-

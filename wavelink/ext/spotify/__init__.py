@@ -27,7 +27,7 @@ import asyncio
 import base64
 import logging
 import time
-from typing import Any, List, Optional, Type, TypeVar, Union, TYPE_CHECKING
+from typing import TYPE_CHECKING, Any, List, Optional, Type, TypeVar, Union
 
 import aiohttp
 from discord.ext import commands
@@ -39,16 +39,16 @@ from .utils import *
 
 
 if TYPE_CHECKING:
-    from wavelink import Player, Playable
+    from wavelink import Playable, Player
 
 
 __all__ = (
-    'SpotifySearchType',
-    'SpotifyClient',
-    'SpotifyTrack',
-    'SpotifyRequestError',
-    'decode_url',
-    'SpotifyDecodePayload'
+    "SpotifySearchType",
+    "SpotifyClient",
+    "SpotifyTrack",
+    "SpotifyRequestError",
+    "decode_url",
+    "SpotifyDecodePayload",
 )
 
 
@@ -59,7 +59,6 @@ ST = TypeVar("ST", bound="Playable")
 
 
 class SpotifyAsyncIterator:
-
     def __init__(self, *, query: str, limit: int, type: SpotifySearchType, node: Node):
         self._query = query
         self._limit = limit
@@ -167,46 +166,46 @@ class SpotifyTrack:
     """
 
     __slots__ = (
-        'raw',
-        'album',
-        'images',
-        'artists',
-        'name',
-        'title',
-        'uri',
-        'id',
-        'length',
-        'duration',
-        'explicit',
-        'isrc',
-        '__dict__'
+        "raw",
+        "album",
+        "images",
+        "artists",
+        "name",
+        "title",
+        "uri",
+        "id",
+        "length",
+        "duration",
+        "explicit",
+        "isrc",
+        "__dict__",
     )
 
     def __init__(self, data: dict[str, Any]) -> None:
         self.raw: dict[str, Any] = data
 
-        album = data['album']
-        self.album: str = album['name']
-        self.images: list[str] = [i['url'] for i in album['images']]
+        album = data["album"]
+        self.album: str = album["name"]
+        self.images: list[str] = [i["url"] for i in album["images"]]
 
-        artists = data['artists']
-        self.artists: list[str] = [a['name'] for a in artists]
+        artists = data["artists"]
+        self.artists: list[str] = [a["name"] for a in artists]
         # self.genres: list[str] = [a['genres'] for a in artists]
 
-        self.name: str = data['name']
+        self.name: str = data["name"]
         self.title: str = self.name
-        self.uri: str = data['uri']
-        self.id: str = data['id']
-        self.length: int = data['duration_ms']
+        self.uri: str = data["uri"]
+        self.id: str = data["id"]
+        self.length: int = data["duration_ms"]
         self.duration: int = self.length
-        self.isrc: str | None = data.get("external_ids", {}).get('irsc')
-        self.explicit: bool = data.get('explicit', False) in {"true", True}
+        self.isrc: str | None = data.get("external_ids", {}).get("irsc")
+        self.explicit: bool = data.get("explicit", False) in {"true", True}
 
     def __str__(self) -> str:
-        return f'{self.name} - {self.artists[0]}'
+        return f"{self.name} - {self.artists[0]}"
 
     def __repr__(self) -> str:
-        return f'SpotifyTrack(id={self.id}, isrc={self.isrc}, name={self.name}, duration={self.duration})'
+        return f"SpotifyTrack(id={self.id}, isrc={self.isrc}, name={self.name}, duration={self.duration})"
 
     def __eq__(self, other) -> bool:
         if isinstance(other, SpotifyTrack):
@@ -215,11 +214,11 @@ class SpotifyTrack:
 
     @classmethod
     async def search(
-            cls,
-            query: str,
-            *,
-            node: Node | None = None,
-    ) -> list['SpotifyTrack']:
+        cls,
+        query: str,
+        *,
+        node: Node | None = None,
+    ) -> list["SpotifyTrack"]:
         """|coro|
 
         Search for tracks with the given query.
@@ -276,12 +275,13 @@ class SpotifyTrack:
         return await node._spotify._search(query=query, type=decoded.type)
 
     @classmethod
-    def iterator(cls,
-                 *,
-                 query: str,
-                 limit: int | None = None,
-                 node: Node | None = None,
-                 ):
+    def iterator(
+        cls,
+        *,
+        query: str,
+        limit: int | None = None,
+        node: Node | None = None,
+    ):
         """An async iterator version of search.
 
         This can be useful when searching for large playlists or albums with Spotify.
@@ -312,8 +312,12 @@ class SpotifyTrack:
         """
         decoded: SpotifyDecodePayload = decode_url(query)
 
-        if not decoded or decoded.type is not SpotifySearchType.album and decoded.type is not SpotifySearchType.playlist:
-            raise TypeError('Spotify iterator query must be either a valid Spotify album or playlist URL.')
+        if (
+            not decoded
+            or decoded.type is not SpotifySearchType.album
+            and decoded.type is not SpotifySearchType.playlist
+        ):
+            raise TypeError("Spotify iterator query must be either a valid Spotify album or playlist URL.")
 
         if node is None:
             node = NodePool.get_connected_node()
@@ -352,11 +356,11 @@ class SpotifyTrack:
         """
 
         if not self.isrc:
-            tracks: list[cls] = await cls.search(f'{self.name} - {self.artists[0]}')
+            tracks: list[cls] = await cls.search(f"{self.name} - {self.artists[0]}")
         else:
             tracks: list[cls] = await cls.search(f'"{self.isrc}"')
             if not tracks:
-                tracks: list[cls] = await cls.search(f'{self.name} - {self.artists[0]}')
+                tracks: list[cls] = await cls.search(f"{self.name} - {self.artists[0]}")
 
         if not player.autoplay or not populate:
             return tracks[0]
@@ -375,14 +379,14 @@ class SpotifyTrack:
 
         player._track_seeds.append(self.id)
 
-        url: str = RECURL.format(tracks=','.join(player._track_seeds))
+        url: str = RECURL.format(tracks=",".join(player._track_seeds))
         async with node._session.get(url=url, headers=sc.bearer_headers) as resp:
             if resp.status != 200:
                 raise SpotifyRequestError(resp.status, resp.reason)
 
             data = await resp.json()
 
-        recos = [SpotifyTrack(t) for t in data['tracks']]
+        recos = [SpotifyTrack(t) for t in data["tracks"]]
         for reco in recos:
             if reco in player.auto_queue or reco in player.auto_queue.history:
                 continue
@@ -414,13 +418,15 @@ class SpotifyClient:
 
     @property
     def grant_headers(self) -> dict:
-        authbytes = f'{self._client_id}:{self._client_secret}'.encode()
-        return {'Authorization': f'Basic {base64.b64encode(authbytes).decode()}',
-                'Content-Type': 'application/x-www-form-urlencoded'}
+        authbytes = f"{self._client_id}:{self._client_secret}".encode()
+        return {
+            "Authorization": f"Basic {base64.b64encode(authbytes).decode()}",
+            "Content-Type": "application/x-www-form-urlencoded",
+        }
 
     @property
     def bearer_headers(self) -> dict:
-        return {'Authorization': f'Bearer {self._bearer_token}'}
+        return {"Authorization": f"Bearer {self._bearer_token}"}
 
     async def _get_bearer_token(self) -> None:
         async with self.session.post(GRANTURL, headers=self.grant_headers) as resp:
@@ -428,27 +434,25 @@ class SpotifyClient:
                 raise SpotifyRequestError(resp.status, resp.reason)
 
             data = await resp.json()
-            self._bearer_token = data['access_token']
-            self._expiry = time.time() + (int(data['expires_in']) - 10)
+            self._bearer_token = data["access_token"]
+            self._expiry = time.time() + (int(data["expires_in"]) - 10)
 
     def is_token_expired(self) -> bool:
         return time.time() >= self._expiry
 
-    async def _search(self,
-                      query: str,
-                      type: SpotifySearchType = SpotifySearchType.track,
-                      iterator: bool = False,
-                      ) -> list[SpotifyTrack]:
-
+    async def _search(
+        self,
+        query: str,
+        type: SpotifySearchType = SpotifySearchType.track,
+        iterator: bool = False,
+    ) -> list[SpotifyTrack]:
         if self.is_token_expired():
             await self._get_bearer_token()
 
         regex_result = URLREGEX.match(query)
 
         url = (
-            BASEURL.format(
-                entity=regex_result['type'], identifier=regex_result['id']
-            )
+            BASEURL.format(entity=regex_result["type"], identifier=regex_result["id"])
             if regex_result
             else BASEURL.format(entity=type.name, identifier=query)
         )
@@ -462,28 +466,28 @@ class SpotifyClient:
 
             data = await resp.json()
 
-        if data['type'] == 'track':
+        if data["type"] == "track":
             return [SpotifyTrack(data)]
 
-        elif data['type'] == 'album':
+        elif data["type"] == "album":
             album_data: dict[str, Any] = {
-                                        'album_type': data['album_type'],
-                                        'artists': data['artists'],
-                                        'available_markets': data['available_markets'],
-                                        'external_urls': data['external_urls'],
-                                        'href': data['href'],
-                                        'id': data['id'],
-                                        'images': data['images'],
-                                        'name': data['name'],
-                                        'release_date': data['release_date'],
-                                        'release_date_precision': data['release_date_precision'],
-                                        'total_tracks': data['total_tracks'],
-                                        'type': data['type'],
-                                        'uri': data['uri'],
-                                        }
+                "album_type": data["album_type"],
+                "artists": data["artists"],
+                "available_markets": data["available_markets"],
+                "external_urls": data["external_urls"],
+                "href": data["href"],
+                "id": data["id"],
+                "images": data["images"],
+                "name": data["name"],
+                "release_date": data["release_date"],
+                "release_date_precision": data["release_date_precision"],
+                "total_tracks": data["total_tracks"],
+                "type": data["type"],
+                "uri": data["uri"],
+            }
             tracks = []
-            for track in data['tracks']['items']:
-                track['album'] = album_data
+            for track in data["tracks"]["items"]:
+                track["album"] = album_data
                 if iterator:
                     tracks.append(track)
                 else:
@@ -491,21 +495,21 @@ class SpotifyClient:
 
             return tracks
 
-        elif data['type'] == 'playlist':
+        elif data["type"] == "playlist":
             if not iterator:
-                return [SpotifyTrack(t['track']) for t in data['tracks']['items']]
-            if not data['tracks']['next']:
-                return [t['track'] for t in data['tracks']['items']]
+                return [SpotifyTrack(t["track"]) for t in data["tracks"]["items"]]
+            if not data["tracks"]["next"]:
+                return [t["track"] for t in data["tracks"]["items"]]
 
-            url = data['tracks']['next']
+            url = data["tracks"]["next"]
 
-            items = [t['track'] for t in data['tracks']['items']]
+            items = [t["track"] for t in data["tracks"]["items"]]
             while True:
                 async with self.session.get(url, headers=self.bearer_headers) as resp:
                     data = await resp.json()
 
-                    items.extend([t['track'] for t in data['items']])
-                    if not data['next']:
+                    items.extend([t["track"] for t in data["items"]])
+                    if not data["next"]:
                         return items
 
-                    url = data['next']
+                    url = data["next"]

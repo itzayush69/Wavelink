@@ -24,20 +24,17 @@ SOFTWARE.
 from __future__ import annotations
 
 import asyncio
+import random
 from collections import deque
 from collections.abc import AsyncIterator, Iterable, Iterator
 from copy import copy
-import random
 
 from .exceptions import QueueEmpty
-from .tracks import Playable, YouTubePlaylist, SoundCloudPlaylist
 from .ext import spotify
+from .tracks import Playable, SoundCloudPlaylist, YouTubePlaylist
 
 
-__all__ = (
-    'BaseQueue',
-    'Queue'
-)
+__all__ = ("BaseQueue", "Queue")
 
 
 class BaseQueue:
@@ -119,8 +116,7 @@ class BaseQueue:
 
     def __repr__(self) -> str:
         """Official representation displaying member count."""
-        return (
-            f"BaseQueue(member_count={self.count})")
+        return f"BaseQueue(member_count={self.count})"
 
     def __bool__(self) -> bool:
         """Treats the queue as a ``bool``, with it evaluating ``True`` when it contains members.

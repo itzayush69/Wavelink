@@ -26,23 +26,17 @@ import re
 from typing import Any, Optional
 
 
-__all__ = (
-    'GRANTURL',
-    'URLREGEX',
-    'BASEURL',
-    'RECURL',
-    'SpotifyDecodePayload',
-    'decode_url',
-    'SpotifySearchType'
+__all__ = ("GRANTURL", "URLREGEX", "BASEURL", "RECURL", "SpotifyDecodePayload", "decode_url", "SpotifySearchType")
+
+
+GRANTURL = "https://accounts.spotify.com/api/token?grant_type=client_credentials"
+URLREGEX = re.compile(
+    r"(https?://open.)?(spotify)(.com/|:)(.*[/:])?"
+    r"(?P<type>album|playlist|track|artist|show|episode)([/:])"
+    r"(?P<id>[a-zA-Z0-9]+)(\?si=[a-zA-Z0-9]+)?(&dl_branch=[0-9]+)?"
 )
-
-
-GRANTURL = 'https://accounts.spotify.com/api/token?grant_type=client_credentials'
-URLREGEX = re.compile(r'(https?://open.)?(spotify)(.com/|:)(.*[/:])?'
-                      r'(?P<type>album|playlist|track|artist|show|episode)([/:])'
-                      r'(?P<id>[a-zA-Z0-9]+)(\?si=[a-zA-Z0-9]+)?(&dl_branch=[0-9]+)?')
-BASEURL = 'https://api.spotify.com/v1/{entity}s/{identifier}'
-RECURL = 'https://api.spotify.com/v1/recommendations?seed_tracks={tracks}'
+BASEURL = "https://api.spotify.com/v1/{entity}s/{identifier}"
+RECURL = "https://api.spotify.com/v1/recommendations?seed_tracks={tracks}"
 
 
 class SpotifySearchType(enum.Enum):
@@ -59,6 +53,7 @@ class SpotifySearchType(enum.Enum):
     unusable
         Unusable type. This type is assigned when Wavelink can not be used to play this track.
     """
+
     track = 0
     album = 1
     playlist = 2
@@ -107,7 +102,7 @@ class SpotifyDecodePayload:
         self.__id = id_
 
     def __repr__(self) -> str:
-        return f'SpotifyDecodePayload(type={self.type}, id={self.id})'
+        return f"SpotifyDecodePayload(type={self.type}, id={self.id})"
 
     @property
     def type(self) -> SpotifySearchType:
@@ -118,7 +113,7 @@ class SpotifyDecodePayload:
         return self.__id
 
     def __getitem__(self, item: Any) -> SpotifySearchType | str:
-        valid: list[str] = ['type', 'id']
+        valid: list[str] = ["type", "id"]
 
         if item not in valid:
             raise KeyError(f'SpotifyDecodePayload object has no key {item}. Valid keys are "{valid}".')
@@ -161,11 +156,10 @@ def decode_url(url: str) -> SpotifyDecodePayload | None:
     match = URLREGEX.match(url)
     if match:
         try:
-            type_ = SpotifySearchType[match['type']]
+            type_ = SpotifySearchType[match["type"]]
         except KeyError:
             type_ = SpotifySearchType.unusable
 
-        return SpotifyDecodePayload(type_=type_, id_=match['id'])
+        return SpotifyDecodePayload(type_=type_, id_=match["id"])
 
     return None
-

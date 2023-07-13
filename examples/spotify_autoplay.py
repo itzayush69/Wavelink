@@ -22,31 +22,28 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 """
 import discord
-import wavelink
 from discord.ext import commands
+
+import wavelink
 from wavelink.ext import spotify
 
 
 class Bot(commands.Bot):
-
     def __init__(self) -> None:
         intents = discord.Intents.default()
         intents.message_content = True
 
-        super().__init__(intents=intents, command_prefix='?')
+        super().__init__(intents=intents, command_prefix="?")
 
     async def on_ready(self) -> None:
-        print(f'Logged in {self.user} | {self.user.id}')
+        print(f"Logged in {self.user} | {self.user.id}")
 
     async def setup_hook(self) -> None:
         # Wavelink 2.0 has made connecting Nodes easier... Simply create each Node
         # and pass it to NodePool.connect with the client/bot.
         # Fill your Spotify API details and pass it to connect.
-        sc = spotify.SpotifyClient(
-            client_id='CLIENT_ID',
-            client_secret='SECRET'
-        )
-        node: wavelink.Node = wavelink.Node(uri='http://localhost:2333', password='youshallnotpass')
+        sc = spotify.SpotifyClient(client_id="CLIENT_ID", client_secret="SECRET")
+        node: wavelink.Node = wavelink.Node(uri="http://localhost:2333", password="youshallnotpass")
         await wavelink.NodePool.connect(client=self, nodes=[node], spotify=sc)
 
 
@@ -68,8 +65,8 @@ async def play(ctx: commands.Context, *, search: str) -> None:
 
     # Check the search to see if it matches a valid Spotify URL...
     decoded = spotify.decode_url(search)
-    if not decoded or decoded['type'] is not spotify.SpotifySearchType.track:
-        await ctx.send('Only Spotify Track URLs are valid.')
+    if not decoded or decoded["type"] is not spotify.SpotifySearchType.track:
+        await ctx.send("Only Spotify Track URLs are valid.")
         return
 
     # Set autoplay to True. This can be disabled at anytime...
@@ -77,7 +74,7 @@ async def play(ctx: commands.Context, *, search: str) -> None:
 
     tracks: list[spotify.SpotifyTrack] = await spotify.SpotifyTrack.search(search)
     if not tracks:
-        await ctx.send('This does not appear to be a valid Spotify URL.')
+        await ctx.send("This does not appear to be a valid Spotify URL.")
         return
 
     track: spotify.SpotifyTrack = tracks[0]

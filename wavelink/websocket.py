@@ -37,6 +37,7 @@ from .enums import NodeStatus, TrackEventType
 from .exceptions import *
 from .payloads import TrackEventPayload, WebsocketClosedPayload
 
+
 if TYPE_CHECKING:
     from .node import Node
     from .player import Player
@@ -46,16 +47,15 @@ logger: logging.Logger = logging.getLogger(__name__)
 
 
 class Websocket:
-
     __slots__ = (
-        'node',
-        'socket',
-        'retries',
-        'retry',
-        '_original_attempts',
-        'backoff',
-        '_listener_task',
-        '_reconnect_task'
+        "node",
+        "socket",
+        "retries",
+        "retry",
+        "_original_attempts",
+        "backoff",
+        "_listener_task",
+        "_reconnect_task",
     )
 
     def __init__(self, *, node: Node) -> None:
@@ -77,13 +77,13 @@ class Websocket:
         assert self.node.client.user is not None
 
         data: dict[str, str] = {
-            'Authorization': str(self.node.password),
-            'User-Id': str(self.node.client.user.id),
-            'Client-Name': f'Wavelink/{__version__}',
+            "Authorization": str(self.node.password),
+            "User-Id": str(self.node.client.user.id),
+            "Client-Name": f"Wavelink/{__version__}",
         }
 
         if self.node._session_id:
-            data['Session-Id'] = self.node._session_id
+            data["Session-Id"] = self.node._session_id
 
         return data
 
@@ -92,8 +92,9 @@ class Websocket:
 
     async def connect(self) -> None:
         if self.node.status is NodeStatus.CONNECTED:
-            logger.error(f'Node {self.node} websocket tried connecting in an already connected state. '
-                         f'Disregarding.')
+            logger.error(
+                f"Node {self.node} websocket tried connecting in an already connected state. " f"Disregarding."
+            )
             return
 
         self.node._status = NodeStatus.CONNECTING
@@ -102,10 +103,12 @@ class Websocket:
             try:
                 self._listener_task.cancel()
             except Exception as e:
-                logger.debug(f'Node {self.node} encountered an error while cancelling the websocket listener: {e}. '
-                             f'This is likely not an issue and will not affect connection.')
+                logger.debug(
+                    f"Node {self.node} encountered an error while cancelling the websocket listener: {e}. "
+                    f"This is likely not an issue and will not affect connection."
+                )
 
-        uri: str = self.node._host.removeprefix('https://').removeprefix('http://')
+        uri: str = self.node._host.removeprefix("https://").removeprefix("http://")
 
         if self.node._use_http:
             uri: str = f'{"https://" if self.node._secure else "http://"}{uri}/v4/websocket'
@@ -136,16 +139,20 @@ class Websocket:
         self.retry = self.backoff.calculate()
 
         if self.retries == 0:
-            logger.error(f'Node {self.node} websocket was unable to connect, '
-                         f'and has exhausted the reconnection attempt limit. '
-                         'Please check your Lavalink Node is started and your connection details are correct.')
+            logger.error(
+                f"Node {self.node} websocket was unable to connect, "
+                f"and has exhausted the reconnection attempt limit. "
+                "Please check your Lavalink Node is started and your connection details are correct."
+            )
 
             await self.cleanup()
             return
 
-        retries = f'{self.retries} attempt(s) remaining.' if self.retries else ''
-        logger.error(f'Node {self.node} websocket was unable to connect, retrying connection in: '
-                     f'"{self.retry}" seconds. {retries}')
+        retries = f"{self.retries} attempt(s) remaining." if self.retries else ""
+        logger.error(
+            f"Node {self.node} websocket was unable to connect, retrying connection in: "
+            f'"{self.retry}" seconds. {retries}'
+        )
 
         if self.retries:
             self.retries -= 1
@@ -158,7 +165,6 @@ class Websocket:
             message = await self.socket.receive()
 
             if message.type in (aiohttp.WSMsgType.CLOSED, aiohttp.WSMsgType.CLOSING):
-
                 for player in self.node.players.copy().values():
                     await player._update_event(data=None)
 
@@ -166,103 +172,112 @@ class Websocket:
                 return
 
             if message.data == 1011:
-                logger.error(f'Node {self.node} websocket encountered an internal error which can not be resolved. '
-                             'Make sure your Lavalink sever is up to date, and try restarting.')
+                logger.error(
+                    f"Node {self.node} websocket encountered an internal error which can not be resolved. "
+                    "Make sure your Lavalink sever is up to date, and try restarting."
+                )
 
                 await self.cleanup()
                 return
 
             if message.data is None:
-                logger.info(f'Node {self.node} websocket received a message from Lavalink with empty data. '
-                            f'Disregarding.')
+                logger.info(
+                    f"Node {self.node} websocket received a message from Lavalink with empty data. " f"Disregarding."
+                )
                 continue
 
             data = message.json()
-            logger.debug(f'Node {self.node} websocket received a message from Lavalink: {data}')
+            logger.debug(f"Node {self.node} websocket received a message from Lavalink: {data}")
 
-            op = data.get('op', None)
+            op = data.get("op", None)
             if not op:
                 logger.info(f'Node {self.node} websocket payload "op" from Lavalink was None. Disregarding.')
                 continue
 
-            if op == 'ready':
+            if op == "ready":
                 self.node._status = NodeStatus.CONNECTED
-                self.node._session_id = data['sessionId']
+                self.node._session_id = data["sessionId"]
 
-                self.dispatch('node_ready', self.node)
+                self.dispatch("node_ready", self.node)
 
-            elif op == 'stats':
+            elif op == "stats":
                 payload = ...
-                logger.debug(f'Node {self.node} websocket received a Stats Update payload: {data}')
-                self.dispatch('stats_update', data)
+                logger.debug(f"Node {self.node} websocket received a Stats Update payload: {data}")
+                self.dispatch("stats_update", data)
 
-            elif op == 'event':
-                logger.debug(f'Node {self.node} websocket received an event payload: {data}')
+            elif op == "event":
+                logger.debug(f"Node {self.node} websocket received an event payload: {data}")
                 player = self.get_player(data)
 
-                if data['type'] == 'WebSocketClosedEvent':
-                    player = player or self.node._invalidated.get(int(data['guildId']), None)
+                if data["type"] == "WebSocketClosedEvent":
+                    player = player or self.node._invalidated.get(int(data["guildId"]), None)
 
                     if not player:
-                        logger.debug(f'Node {self.node} received a WebsocketClosedEvent in an "unknown" state. '
-                                     f'Disregarding.')
+                        logger.debug(
+                            f'Node {self.node} received a WebsocketClosedEvent in an "unknown" state. ' f"Disregarding."
+                        )
                         continue
 
                     if self.node._invalidated.get(player.guild.id):
                         await player._destroy()
 
-                    logger.debug(f'Node {self.node} websocket acknowledged "WebsocketClosedEvent": '
-                                 f'<code: {data["code"]}, reason: {data["reason"]}, by_discord: {data["byRemote"]}>. '
-                                 f'Cleanup on player {player.guild.id} has been completed.')
+                    logger.debug(
+                        f'Node {self.node} websocket acknowledged "WebsocketClosedEvent": '
+                        f'<code: {data["code"]}, reason: {data["reason"]}, by_discord: {data["byRemote"]}>. '
+                        f"Cleanup on player {player.guild.id} has been completed."
+                    )
 
                     payload: WebsocketClosedPayload = WebsocketClosedPayload(data=data, player=player)
 
-                    self.dispatch('websocket_closed', payload)
+                    self.dispatch("websocket_closed", payload)
                     continue
 
                 if player is None:
-                    logger.debug(f'Node {self.node} received a payload from Lavalink without an attached player. '
-                                 f'Disregarding.')
+                    logger.debug(
+                        f"Node {self.node} received a payload from Lavalink without an attached player. "
+                        f"Disregarding."
+                    )
                     continue
 
-                track = wavelink.GenericTrack(data=data['track'])
+                track = wavelink.GenericTrack(data=data["track"])
                 payload: TrackEventPayload = TrackEventPayload(
-                    data=data,
-                    track=track,
-                    player=player,
-                    original=player._original
+                    data=data, track=track, player=player, original=player._original
                 )
 
-                if payload.event is TrackEventType.END and payload.reason != 'REPLACED':
+                if payload.event is TrackEventType.END and payload.reason != "REPLACED":
                     player._current = None
 
-                self.dispatch('track_event', payload)
+                self.dispatch("track_event", payload)
 
                 if payload.event is TrackEventType.END:
-                    self.dispatch('track_end', payload)
+                    self.dispatch("track_end", payload)
                     asyncio.create_task(player._auto_play_event(payload))
 
                 elif payload.event is TrackEventType.START:
-                    self.dispatch('track_start', payload)
+                    self.dispatch("track_start", payload)
 
-            elif op == 'playerUpdate':
+            elif op == "playerUpdate":
                 player = self.get_player(data)
                 if player is None:
-                    logger.debug(f'Node {self.node} received a payload from Lavalink without an attached player. '
-                                 f'Disregarding.')
+                    logger.debug(
+                        f"Node {self.node} received a payload from Lavalink without an attached player. "
+                        f"Disregarding."
+                    )
                     continue
 
                 await player._update_event(data)
                 self.dispatch("player_update", data)
-                logger.debug(f'Node {self.node} websocket received Player Update payload: {data}')
+                logger.debug(f"Node {self.node} websocket received Player Update payload: {data}")
 
             else:
-                logger.warning(f'Received unknown payload from Lavalink: <{data}>. '
-                               f'If this continues consider making a ticket on the Wavelink GitHub. '
-                               f'https://github.com/PythonistaGuild/Wavelink')
+                logger.warning(
+                    f"Received unknown payload from Lavalink: <{data}>. "
+                    f"If this continues consider making a ticket on the Wavelink GitHub. "
+                    f"https://github.com/PythonistaGuild/Wavelink"
+                )
 
-    def get_player(self, payload: dict[str, Any]) -> Optional['Player']:
-        return self.node.players.get(int(payload['guildId']), None)
+    def get_player(self, payload: dict[str, Any]) -> Optional["Player"]:
+        return self.node.players.get(int(payload["guildId"]), None)
 
     def dispatch(self, event, *args: Any, **kwargs: Any) -> None:
         self.node.client.dispatch(f"wavelink_{event}", *args, **kwargs)
@@ -282,4 +297,4 @@ class Websocket:
 
         self.node._status = NodeStatus.DISCONNECTED
 
-        logger.debug(f'Successfully cleaned up websocket for node: {self.node}')
+        logger.debug(f"Successfully cleaned up websocket for node: {self.node}")

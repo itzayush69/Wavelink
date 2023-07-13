@@ -4,6 +4,7 @@ from typing import TYPE_CHECKING, TypedDict
 
 from .state import VoiceState
 
+
 if TYPE_CHECKING:
     from typing_extensions import TypeAlias
 
@@ -30,4 +31,4 @@ class IdentifierRequest(_BaseRequest):
     identifier: str
 
 
-Request: TypeAlias = '_BaseRequest | EncodedTrackRequest | IdentifierRequest'
+Request: TypeAlias = "_BaseRequest | EncodedTrackRequest | IdentifierRequest"

@@ -27,14 +27,15 @@ from typing import TYPE_CHECKING, Any
 
 from discord.enums import try_enum
 
-from .enums import TrackEventType, DiscordVoiceCloseType
+from .enums import DiscordVoiceCloseType, TrackEventType
+
 
 if TYPE_CHECKING:
     from .player import Player
     from .tracks import Playable
     from .types.events import EventOp
 
-__all__ = ('TrackEventPayload', 'WebsocketClosedPayload')
+__all__ = ("TrackEventPayload", "WebsocketClosedPayload")
 
 
 class TrackEventPayload:
@@ -60,12 +61,12 @@ class TrackEventPayload:
     """
 
     def __init__(self, *, data: EventOp, track: Playable, original: Playable | None, player: Player) -> None:
-        self.event: TrackEventType = try_enum(TrackEventType, data['type'])
+        self.event: TrackEventType = try_enum(TrackEventType, data["type"])
         self.track: Playable = track
         self.original: Playable | None = original
         self.player: Player = player
 
-        self.reason: str = data.get('reason')
+        self.reason: str = data.get("reason")
 
 
 class WebsocketClosedPayload:
@@ -89,7 +90,7 @@ class WebsocketClosedPayload:
     """
 
     def __init__(self, *, data: dict[str, Any], player: Player) -> None:
-        self.code: DiscordVoiceCloseType = try_enum(DiscordVoiceCloseType, data['code'])
-        self.reason: str = data.get('reason')
-        self.by_discord: bool = data.get('byRemote')
+        self.code: DiscordVoiceCloseType = try_enum(DiscordVoiceCloseType, data["code"])
+        self.reason: str = data.get("reason")
+        self.by_discord: bool = data.get("byRemote")
         self.player: Player = player

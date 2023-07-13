@@ -24,7 +24,7 @@ SOFTWARE.
 from __future__ import annotations
 
 import abc
-from typing import TYPE_CHECKING, ClassVar, Literal, overload, Optional, Any
+from typing import TYPE_CHECKING, Any, ClassVar, Literal, Optional, overload
 
 import aiohttp
 import yarl
@@ -34,26 +34,25 @@ from .enums import TrackSource
 from .exceptions import NoTracksError
 from .node import Node, NodePool
 
+
 if TYPE_CHECKING:
     from typing_extensions import Self
 
     from .types.track import Track as TrackPayload
 
 __all__ = (
-    'Playable',
-    'Playlist',
-    'YouTubeTrack',
-    'GenericTrack',
-    'YouTubeMusicTrack',
-    'SoundCloudTrack',
-    'YouTubePlaylist',
-    'SoundCloudPlaylist'
+    "Playable",
+    "Playlist",
+    "YouTubeTrack",
+    "GenericTrack",
+    "YouTubeMusicTrack",
+    "SoundCloudTrack",
+    "YouTubePlaylist",
+    "SoundCloudPlaylist",
 )
 
 
-_source_mapping: dict[str, TrackSource] = {
-    'youtube': TrackSource.YouTube
-}
+_source_mapping: dict[str, TrackSource] = {"youtube": TrackSource.YouTube}
 
 
 class Playlist(metaclass=abc.ABCMeta):
@@ -66,7 +65,7 @@ class Playlist(metaclass=abc.ABCMeta):
     """
 
     def __init__(self, data: dict[str, Any]):
-        self.data: dict[str, Any] = data['data']
+        self.data: dict[str, Any] = data["data"]
 
 
 class Playable(metaclass=abc.ABCMeta):
@@ -123,30 +122,30 @@ class Playable(metaclass=abc.ABCMeta):
         Added the isrc and artwork fields.
     """
 
-    PREFIX: ClassVar[str] = ''
-    
+    PREFIX: ClassVar[str] = ""
+
     def __init__(self, data: TrackPayload) -> None:
         self.data: TrackPayload = data
-        self.encoded: str = data['encoded']
+        self.encoded: str = data["encoded"]
 
-        info = data['info']
-        self.is_seekable: bool = info.get('isSeekable', False)
-        self.is_stream: bool = info.get('isStream', False)
-        self.length: int = info.get('length', 0)
+        info = data["info"]
+        self.is_seekable: bool = info.get("isSeekable", False)
+        self.is_stream: bool = info.get("isStream", False)
+        self.length: int = info.get("length", 0)
         self.duration: int = self.length
-        self.position: int = info.get('position', 0)
+        self.position: int = info.get("position", 0)
 
-        self.title: str = info.get('title', 'Unknown Title')
+        self.title: str = info.get("title", "Unknown Title")
 
-        source: str | None = info.get('sourceName')
+        source: str | None = info.get("sourceName")
         self.source: TrackSource = _source_mapping.get(source, TrackSource.Unknown)
 
-        self.uri: str | None = info.get('uri')
-        self.author: str | None = info.get('author')
-        self.identifier: str | None = info.get('identifier')
+        self.uri: str | None = info.get("uri")
+        self.author: str | None = info.get("author")
+        self.identifier: str | None = info.get("identifier")
 
-        self.artwork: str | None = info.get('artworkUrl')
-        self.isrc: str | None = info.get('isrc')
+        self.artwork: str | None = info.get("artworkUrl")
+        self.isrc: str | None = info.get("isrc")
 
     def __hash__(self) -> int:
         return hash(self.encoded)
@@ -155,50 +154,30 @@ class Playable(metaclass=abc.ABCMeta):
         return self.title
 
     def __repr__(self) -> str:
-        return f'Playable: source={self.source}, title={self.title}'
+        return f"Playable: source={self.source}, title={self.title}"
 
     def __eq__(self, other: object) -> bool:
         if isinstance(other, Playable):
             return self.encoded == other.encoded
         return NotImplemented
-    
+
     @overload
     @classmethod
-    async def search(cls,
-                     query: str,
-                     /,
-                     *,
-                     node: Node | None = ...
-                     ) -> list[Self]:
+    async def search(cls, query: str, /, *, node: Node | None = ...) -> list[Self]:
         ...
 
     @overload
     @classmethod
-    async def search(cls,
-                     query: str,
-                     /,
-                     *,
-                     node: Node | None = ...
-                     ) -> YouTubePlaylist:
+    async def search(cls, query: str, /, *, node: Node | None = ...) -> YouTubePlaylist:
         ...
 
     @overload
     @classmethod
-    async def search(cls,
-                     query: str,
-                     /,
-                     *,
-                     node: Node | None = ...
-                     ) -> SoundCloudPlaylist:
+    async def search(cls, query: str, /, *, node: Node | None = ...) -> SoundCloudPlaylist:
         ...
 
     @classmethod
-    async def search(cls,
-                     query: str,
-                     /,
-                     *,
-                     node: Node | None = None
-                     ) -> list[Self]:
+    async def search(cls, query: str, /, *, node: Node | None = None) -> list[Self]:
         """Search and retrieve tracks for the given query.
 
         Parameters
@@ -212,19 +191,21 @@ class Playable(metaclass=abc.ABCMeta):
 
         check = yarl.URL(query)
 
-        if str(check.host) == 'youtube.com' or str(check.host) == 'www.youtube.com' and check.query.get("list") or \
-                cls.PREFIX == 'ytpl:':
-
+        if (
+            str(check.host) == "youtube.com"
+            or str(check.host) == "www.youtube.com"
+            and check.query.get("list")
+            or cls.PREFIX == "ytpl:"
+        ):
             playlist = await NodePool.get_playlist(query, cls=YouTubePlaylist, node=node)
             return playlist
-        elif str(check.host) == 'soundcloud.com' or str(check.host) == 'www.soundcloud.com' and 'sets' in check.parts:
-
+        elif str(check.host) == "soundcloud.com" or str(check.host) == "www.soundcloud.com" and "sets" in check.parts:
             playlist = await NodePool.get_playlist(query, cls=SoundCloudPlaylist, node=node)
             return playlist
         elif check.host:
             tracks = await NodePool.get_tracks(query, cls=cls, node=node)
         else:
-            tracks = await NodePool.get_tracks(f'{cls.PREFIX}{query}', cls=cls, node=node)
+            tracks = await NodePool.get_tracks(f"{cls.PREFIX}{query}", cls=cls, node=node)
 
         return tracks
 
@@ -251,12 +232,12 @@ class GenericTrack(Playable):
 
     Use this track for searching for Local songs or direct URLs.
     """
+
     ...
 
 
 class YouTubeTrack(Playable):
-
-    PREFIX: str = 'ytsearch:'
+    PREFIX: str = "ytsearch:"
 
     def __init__(self, data: TrackPayload) -> None:
         super().__init__(data)
@@ -306,7 +287,7 @@ class YouTubeTrack(Playable):
 
         async with session.get(url=url) as resp:
             if resp.status == 404:
-                url = f'https://img.youtube.com/vi/{self.identifier}/hqdefault.jpg'
+                url = f"https://img.youtube.com/vi/{self.identifier}/hqdefault.jpg"
 
         self._thumb = url
         return url
@@ -349,13 +330,13 @@ class YouTubePlaylist(Playable, Playlist):
 
     def __init__(self, data: dict):
         self.tracks: list[YouTubeTrack] = []
-        self.name: str = data['data']["info"]["name"]
+        self.name: str = data["data"]["info"]["name"]
 
-        self.selected_track: Optional[int] = data['data']["info"].get("selectedTrack")
+        self.selected_track: Optional[int] = data["data"]["info"].get("selectedTrack")
         if self.selected_track is not None:
             self.selected_track = int(self.selected_track)
 
-        for track_data in data['data']["tracks"]:
+        for track_data in data["data"]["tracks"]:
             track = YouTubeTrack(track_data)
             self.tracks.append(track)
 
@@ -388,13 +369,13 @@ class SoundCloudPlaylist(Playable, Playlist):
 
     def __init__(self, data: dict):
         self.tracks: list[SoundCloudTrack] = []
-        self.name: str = data['data']["info"]["name"]
+        self.name: str = data["data"]["info"]["name"]
 
-        self.selected_track: Optional[int] = data['data']["info"].get("selectedTrack")
+        self.selected_track: Optional[int] = data["data"]["info"].get("selectedTrack")
         if self.selected_track is not None:
             self.selected_track = int(self.selected_track)
 
-        for track_data in data['data']["tracks"]:
+        for track_data in data["data"]["tracks"]:
             track = SoundCloudTrack(track_data)
             self.tracks.append(track)
 
